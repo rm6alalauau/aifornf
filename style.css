@@ -582,20 +582,29 @@ button:disabled {
 /* --- Toast Notification Styles (FIXED) --- */
 #toast-container {
     position: fixed;
-    /* Crucial for viewport positioning */
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
+    /* 增加一個安全區域邊距，使用 max() 確保它至少有 24px，
+       並尊重 iOS 等設備的安全區域（env(safe-area-inset-bottom)） */
+    bottom: max(24px, env(safe-area-inset-bottom));
+    left: 16px;
+    /* 從居中改為靠左，避免與其他 UI 衝突 */
+    right: 16px;
+    /* 增加 right，讓它在橫向有邊距 */
+    transform: none;
+    /* 移除 translateX(-50%) */
     z-index: 9999;
     display: flex;
     flex-direction: column;
     align-items: center;
+    /* 讓 toast 本身居中 */
     gap: 12px;
     pointer-events: none;
-    /* Allows clicks to pass through */
 }
 
 .toast {
+    max-width: 400px;
+    width: fit-content;
+    /* 讓寬度自適應內容，但有最大限制 */
+    /* 其他樣式保持不變... */
     padding: 12px 18px;
     border-radius: 24px;
     background-color: var(--md-sys-color-on-background);
@@ -606,7 +615,6 @@ button:disabled {
     opacity: 0;
     transform: translateY(20px);
     transition: all 0.35s cubic-bezier(0.21, 1.02, 0.73, 1);
-    /* Smoother animation */
     animation: toast-in 0.35s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
 }
 
@@ -646,12 +654,17 @@ button:disabled {
     }
 
     #toast-container {
-        width: 100%;
-        padding: 0 16px;
-        bottom: 16px;
+        /* 在手機上，讓容器佔滿寬度 */
+        left: 16px;
+        right: 16px;
+        bottom: max(16px, env(safe-area-inset-bottom));
+        /* 手機上底部間距可以小一點 */
+        align-items: stretch;
+        /* 讓 toast 佔滿容器寬度 */
     }
 
     .toast {
+        /* 在手機上，讓 toast 佔滿寬度 */
         width: 100%;
         text-align: center;
     }
