@@ -3,18 +3,17 @@ import * as ui from "./ui.js";
 import { analyzeImage } from "./api.js";
 
 // **IMPORTANT**: Set your Cloudflare Worker's ROOT URL here
-const WORKER_URL = "https://ai.zzz-archive-back-end.workers.dev";
+const WORKER_URL = "https://<YOUR_WORKER_NAME>.<YOUR_SUBDOMAIN>.workers.dev";
 const CORS_PROXY_URL = `${WORKER_URL}/?url=`;
 
-// 變數來儲存從後端獲取的預設 Key
 let defaultApiKey = null;
 
-// 在頁面載入時，異步獲取預設金鑰
 async function fetchDefaultApiKey() {
   try {
     const response = await fetch(`${WORKER_URL}/api/get-default-key`);
     if (!response.ok) {
-      console.error("無法獲取預設 API Key");
+      console.error("無法獲取預設 API Key，伺服器回應:", response.statusText);
+      ui.showToast("預設服務暫時不可用。");
       return;
     }
     const data = await response.json();
@@ -22,6 +21,7 @@ async function fetchDefaultApiKey() {
     console.log("成功獲取預設 API Key。");
   } catch (error) {
     console.error("獲取預設 API Key 時出錯:", error);
+    ui.showToast("連接預設服務失敗。");
   }
 }
 
@@ -64,22 +64,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const isDarkMode = store.getDarkModePreference();
     ui.initializeTheme(isDarkMode);
     setupEventListeners();
-    fetchDefaultApiKey(); // 在頁面載入時就開始獲取預設金鑰
+    fetchDefaultApiKey();
   }
 
   function handleFileSelect() {
     if (!elements.fileInput.files.length) return;
     const file = elements.fileInput.files[0];
     if (!file.type.startsWith("image/")) {
-      ui.showToast("請選擇一個圖片檔案。");
-      return;
+      return ui.showToast("請選擇一個圖片檔案。");
     }
     const MAX_FILE_SIZE = 10 * 1024 * 1024;
     if (file.size > MAX_FILE_SIZE) {
-      ui.showToast(
+      return ui.showToast(
         `檔案過大。請上傳小於 ${MAX_FILE_SIZE / 1024 / 1024} MB 的圖片。`
       );
-      return;
     }
     processFileAsDataURL(file);
   }
@@ -127,16 +125,15 @@ document.addEventListener("DOMContentLoaded", () => {
   async function startAnalysis() {
     if (!selectedImageDataUrl) return;
 
-    let apiKeyToUse = store.getUserApiKey(); // 1. 首先嘗試獲取使用者自訂的 Key
-
+    let apiKeyToUse = store.getUserApiKey();
     if (!apiKeyToUse) {
-      // 2. 如果沒有，則使用從後端獲取的預設 Key
       if (!defaultApiKey) {
-        // 3. 如果預設 Key 還沒加載完成或失敗
-        ui.showToast("正在準備服務，請稍候再試...");
-        await fetchDefaultApiKey(); // 再次嘗試獲取
+        ui.showToast("正在準備預設服務，請稍候再試...");
+        await fetchDefaultApiKey();
         if (!defaultApiKey) {
-          ui.displayError("無法獲取預設服務金鑰，請提供您自己的 API Key。");
+          ui.displayError(
+            "無法獲取預設服務金鑰，請在設定中提供您自己的 API Key。"
+          );
           ui.toggleSettingsPanel();
           return;
         }
@@ -212,6 +209,40 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.disabled = false;
   }
 
+  function handleTryAgain() {
+    ui.resetToInputView();
+  }
+  function toggleSavedResults() {
+    isSavedVisible = !isSavedVisible;
+    if (isSavedVisible) {
+      renderSaved();
+      elements.viewSavedBtn.innerHTML = `<span class="material-symbols-outlined">close</span> 隱藏已儲存的結果`;
+    } else {
+      document.getElementById("saved-results-container").innerHTML = "";
+      elements.viewSavedBtn.innerHTML = `<span class="material-symbols-outlined">folder_open</span> 查看已儲存的結果`;
+    }
+  }
+  function renderSaved() {
+    const results = store.getSavedResults();
+    ui.renderSavedResults(results, {
+      onView: (index) => {
+        const result = store.getSavedResults()[index];
+        ui.showPopup(result, {
+          onShare: async (resultToShare) => {
+            /* ... */
+          },
+        });
+      },
+      onDelete: (index) => {
+        if (confirm("您確定要刪除這個結果嗎？")) {
+          store.deleteSavedResult(index);
+          ui.showToast("結果已刪除。");
+          renderSaved();
+        }
+      },
+    });
+  }
+
   function setupEventListeners() {
     elements.themeToggle.addEventListener("click", () => {
       const isDark = !store.getDarkModePreference();
@@ -251,12 +282,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
     });
-
     elements.saveResultBtn.addEventListener("click", handleSaveResult);
     elements.shareResultBtn.addEventListener("click", handleShareResult);
     elements.tryAgainBtn.addEventListener("click", handleTryAgain);
     elements.viewSavedBtn.addEventListener("click", toggleSavedResults);
-
     elements.popupOverlay.addEventListener("click", (e) => {
       if (
         e.target === elements.popupOverlay ||
@@ -265,7 +294,6 @@ document.addEventListener("DOMContentLoaded", () => {
         ui.hidePopup();
       }
     });
-
     const settingsOverlay = document.getElementById("settings-overlay");
     settingsOverlay.addEventListener("click", (e) => {
       if (e.target === settingsOverlay || e.target.closest(".close-popup")) {
