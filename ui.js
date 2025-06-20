@@ -159,10 +159,37 @@ export async function generateShareImage() {
     // 截圖完成後，立即移除臨時樣式
     targetElement.classList.remove(shareCardClass);
 
-    const link = document.createElement("a");
-    link.download = `ai-analysis-${Date.now()}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+    // 改善iPhone下載機制
+    const dataUrl = canvas.toDataURL("image/png");
+    const fileName = `ai-analysis-${Date.now()}.png`;
+    
+    // 檢測是否為iOS設備
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (isIOS) {
+      // iOS設備使用特殊的下載方法
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = fileName;
+      link.style.display = "none";
+      
+      // 添加到DOM並觸發點擊
+      document.body.appendChild(link);
+      link.click();
+      
+      // 延遲移除元素
+      setTimeout(() => {
+        if (link.parentNode) {
+          link.parentNode.removeChild(link);
+        }
+      }, 100);
+    } else {
+      // 其他設備使用標準方法
+      const link = document.createElement("a");
+      link.download = fileName;
+      link.href = dataUrl;
+      link.click();
+    }
 
     return true;
   } catch (err) {
@@ -186,15 +213,38 @@ export function showToast(message) {
     console.error("Toast container not found!");
     return;
   }
+  
+  // 清理舊的toast
+  const existingToasts = elements.toastContainer.querySelectorAll('.toast');
+  existingToasts.forEach(toast => {
+    if (toast.parentNode) {
+      toast.parentNode.removeChild(toast);
+    }
+  });
+  
   const toast = document.createElement("div");
   toast.className = "toast";
   toast.textContent = message;
+  
+  // 確保toast容器存在且可見
+  if (!elements.toastContainer.parentNode) {
+    document.body.appendChild(elements.toastContainer);
+  }
+  
   elements.toastContainer.appendChild(toast);
-  const FADE_OUT_DELAY = 2000;
+  
+  // 強制重繪以確保動畫正常執行
+  toast.offsetHeight;
+  
+  const FADE_OUT_DELAY = 3000; // 增加顯示時間
   const ANIMATION_DURATION = 350;
+  
   setTimeout(() => {
-    toast.classList.add("fade-out");
+    if (toast && toast.parentNode) {
+      toast.classList.add("fade-out");
+    }
   }, FADE_OUT_DELAY);
+  
   setTimeout(() => {
     if (toast && toast.parentNode) {
       toast.remove();

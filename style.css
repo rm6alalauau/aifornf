@@ -598,6 +598,9 @@ button:disabled {
     /* 讓 toast 本身居中 */
     gap: 12px;
     pointer-events: none;
+    /* 確保在手機上也能正常顯示 */
+    max-height: 100vh;
+    overflow: hidden;
 }
 
 .toast {
@@ -616,6 +619,10 @@ button:disabled {
     transform: translateY(20px);
     transition: all 0.35s cubic-bezier(0.21, 1.02, 0.73, 1);
     animation: toast-in 0.35s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+    /* 確保在手機上也能正常顯示 */
+    word-wrap: break-word;
+    white-space: normal;
+    line-height: 1.4;
 }
 
 @keyframes toast-in {
@@ -655,17 +662,22 @@ button:disabled {
 
     #toast-container {
         /* 在手機上，讓容器佔滿寬度 */
-        left: 16px;
-        right: 16px;
+        left: 8px;
+        right: 8px;
         bottom: max(16px, env(safe-area-inset-bottom));
         /* 手機上底部間距可以小一點 */
         align-items: stretch;
         /* 讓 toast 佔滿容器寬度 */
+        padding: 0 8px;
     }
 
     .toast {
         /* 在手機上，讓 toast 佔滿寬度 */
         width: 100%;
+        max-width: none;
         text-align: center;
+        /* 確保在手機上也能正常顯示 */
+        font-size: 0.85rem;
+        padding: 10px 16px;
     }
 }

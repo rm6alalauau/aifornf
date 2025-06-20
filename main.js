@@ -185,13 +185,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function handleSaveResult() {
     if (currentAnalysisResult) {
-      store.addSavedResult({
+      const success = store.addSavedResult({
         ...currentAnalysisResult,
         timestamp: new Date().toISOString(),
       });
-      ui.markAsSaved();
-      ui.showToast("結果已儲存。");
-      if (isSavedVisible) renderSaved();
+      
+      if (success) {
+        ui.markAsSaved();
+        ui.showToast("結果已儲存。");
+        if (isSavedVisible) renderSaved();
+      } else {
+        ui.showToast("儲存失敗，請稍後再試。");
+      }
     }
   }
 
@@ -253,9 +258,13 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       onDelete: (index) => {
         if (confirm("您確定要刪除這個結果嗎？")) {
-          store.deleteSavedResult(index);
-          ui.showToast("結果已刪除。");
-          renderSaved();
+          const success = store.deleteSavedResult(index);
+          if (success) {
+            ui.showToast("結果已刪除。");
+            renderSaved();
+          } else {
+            ui.showToast("刪除失敗，請稍後再試。");
+          }
         }
       },
     });
