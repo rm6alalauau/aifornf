@@ -134,23 +134,41 @@ export function showPopup(result, handlers) {
 export function hidePopup() {
   elements.popupOverlay.classList.remove("visible");
 }
-export async function generateShareImage(resultData) {
-  elements.shareImage.src = resultData.image;
-  elements.shareVerdict.textContent = resultData.verdict;
-  elements.shareRating.textContent = `${resultData.rating}/10`;
-  elements.shareExplanation.textContent = resultData.explanation;
+export async function generateShareImage() {
+  // 我們的目標現在是螢幕上可見的結果卡片
+  const targetElement = document.getElementById("result-container");
+  if (!targetElement) {
+    console.error("Result container not found for sharing.");
+    return false;
+  }
+
+  // 臨時為截圖目標添加一個 class，以便應用特殊的分享樣式
+  // 例如，添加一個深色背景和 padding，使其看起來像一張卡片
+  const shareCardClass = "share-capture-style";
+  targetElement.classList.add(shareCardClass);
+
   try {
-    const canvas = await html2canvas(elements.shareCanvasContainer, {
-      useCORS: true,
-      scale: 2,
+    const canvas = await html2canvas(targetElement, {
+      useCORS: true, // 允許加載跨域圖片
+      scale: 2, // 提高截圖解析度，使其更清晰
+      // 讓 html2canvas 計算元素的完整高度，包括滾動部分
+      windowHeight: targetElement.scrollHeight,
+      scrollY: -window.scrollY, // 告訴 html2canvas 當前頁面的滾動位置
     });
+
+    // 截圖完成後，立即移除臨時樣式
+    targetElement.classList.remove(shareCardClass);
+
     const link = document.createElement("a");
     link.download = `ai-analysis-${Date.now()}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
+
     return true;
   } catch (err) {
     console.error("Error generating share image:", err);
+    // 確保即使出錯也要移除臨時樣式
+    targetElement.classList.remove(shareCardClass);
     return false;
   }
 }
