@@ -2,9 +2,28 @@ import * as store from "./store.js";
 import * as ui from "./ui.js";
 import { analyzeImage } from "./api.js";
 
-// **IMPORTANT**: Set your Cloudflare Worker URL here
-const CORS_PROXY_URL =
-  "https://ai.zzz-archive-back-end.workers.dev/?url=";
+// **IMPORTANT**: Set your Cloudflare Worker's ROOT URL here
+const WORKER_URL = "https://ai.zzz-archive-back-end.workers.dev";
+const CORS_PROXY_URL = `${WORKER_URL}/?url=`;
+
+// 變數來儲存從後端獲取的預設 Key
+let defaultApiKey = null;
+
+// 在頁面載入時，異步獲取預設金鑰
+async function fetchDefaultApiKey() {
+  try {
+    const response = await fetch(`${WORKER_URL}/api/get-default-key`);
+    if (!response.ok) {
+      console.error("無法獲取預設 API Key");
+      return;
+    }
+    const data = await response.json();
+    defaultApiKey = data.key;
+    console.log("成功獲取預設 API Key。");
+  } catch (error) {
+    console.error("獲取預設 API Key 時出錯:", error);
+  }
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   const elements = {
@@ -45,9 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const isDarkMode = store.getDarkModePreference();
     ui.initializeTheme(isDarkMode);
     setupEventListeners();
-    if (!store.getUserApiKey()) {
-      ui.showToast("歡迎！請點擊右上角 鑰匙圖示 設定您的 API Key。");
-    }
+    fetchDefaultApiKey(); // 在頁面載入時就開始獲取預設金鑰
   }
 
   function handleFileSelect() {
@@ -110,11 +127,21 @@ document.addEventListener("DOMContentLoaded", () => {
   async function startAnalysis() {
     if (!selectedImageDataUrl) return;
 
-    const userApiKey = store.getUserApiKey();
-    if (!userApiKey) {
-      ui.showToast("請先在設定中提供您的 Gemini API Key。");
-      ui.toggleSettingsPanel();
-      return;
+    let apiKeyToUse = store.getUserApiKey(); // 1. 首先嘗試獲取使用者自訂的 Key
+
+    if (!apiKeyToUse) {
+      // 2. 如果沒有，則使用從後端獲取的預設 Key
+      if (!defaultApiKey) {
+        // 3. 如果預設 Key 還沒加載完成或失敗
+        ui.showToast("正在準備服務，請稍候再試...");
+        await fetchDefaultApiKey(); // 再次嘗試獲取
+        if (!defaultApiKey) {
+          ui.displayError("無法獲取預設服務金鑰，請提供您自己的 API Key。");
+          ui.toggleSettingsPanel();
+          return;
+        }
+      }
+      apiKeyToUse = defaultApiKey;
     }
 
     ui.showResultView(selectedImageDataUrl);
@@ -144,7 +171,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await analyzeImage(
         selectedImageDataUrl,
         aiType,
-        userApiKey
+        apiKeyToUse
       );
       currentAnalysisResult = {
         ...response,

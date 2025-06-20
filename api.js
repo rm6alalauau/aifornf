@@ -3,9 +3,9 @@ import { systemPrompts } from "./config.js";
 const API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
 const MODEL = "gemini-1.5-flash-latest";
 
-export async function analyzeImage(imageDataUrl, aiType, userApiKey) {
-  if (!userApiKey) {
-    throw new Error("API 金鑰為空。請在設定中提供您的 Gemini API Key。");
+export async function analyzeImage(imageDataUrl, aiType, apiKey) {
+  if (!apiKey) {
+    throw new Error("API 金鑰為空，無法進行分析。");
   }
 
   const systemPrompt = systemPrompts[aiType];
@@ -25,12 +25,10 @@ export async function analyzeImage(imageDataUrl, aiType, userApiKey) {
         ],
       },
     ],
-    generationConfig: {
-      response_mime_type: "application/json",
-    },
+    generationConfig: { response_mime_type: "application/json" },
   };
 
-  const url = `${API_BASE_URL}${MODEL}:generateContent?key=${userApiKey}`;
+  const url = `${API_BASE_URL}${MODEL}:generateContent?key=${apiKey}`;
 
   try {
     const response = await fetch(url, {
@@ -52,11 +50,9 @@ export async function analyzeImage(imageDataUrl, aiType, userApiKey) {
       throw new Error("從 API 收到的回應格式無效。");
     }
 
-    // The response is a string which should be parsed.
     return JSON.parse(data.candidates[0].content.parts[0].text);
   } catch (error) {
     console.error("呼叫 Gemini API 時出錯:", error);
-    // Re-throw the error to be handled by the caller
     throw error;
   }
 }
