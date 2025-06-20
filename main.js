@@ -211,7 +211,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function handleTryAgain() {
     ui.resetToInputView();
+    currentAnalysisResult = null;
+    selectedImageDataUrl = null;
   }
+
   function toggleSavedResults() {
     isSavedVisible = !isSavedVisible;
     if (isSavedVisible) {
@@ -222,14 +225,29 @@ document.addEventListener("DOMContentLoaded", () => {
       elements.viewSavedBtn.innerHTML = `<span class="material-symbols-outlined">folder_open</span> 查看已儲存的結果`;
     }
   }
+
   function renderSaved() {
     const results = store.getSavedResults();
     ui.renderSavedResults(results, {
       onView: (index) => {
         const result = store.getSavedResults()[index];
         ui.showPopup(result, {
+          // *** THIS IS THE FIX: Added the onShare handler logic ***
           onShare: async (resultToShare) => {
-            /* ... */
+            const shareBtn = document.getElementById("popup-share-btn");
+            if (!shareBtn) return; // Safety check
+
+            const originalIcon = shareBtn.innerHTML;
+            shareBtn.innerHTML = `<div class="spinner" style="width:20px;height:20px;border-width:2px;"></div>`;
+            shareBtn.disabled = true;
+
+            const success = await ui.generateShareImage(resultToShare);
+            if (!success) {
+              ui.showToast("無法生成分享圖，請稍後再試。");
+            }
+
+            shareBtn.innerHTML = originalIcon;
+            shareBtn.disabled = false;
           },
         });
       },
