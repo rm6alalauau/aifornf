@@ -3,7 +3,7 @@ import * as ui from "./ui.js";
 import { analyzeImage } from "./api.js";
 
 // **IMPORTANT**: Set your Cloudflare Worker's ROOT URL here
-const WORKER_URL = "https://<YOUR_WORKER_NAME>.<YOUR_SUBDOMAIN>.workers.dev";
+const WORKER_URL = "https://ai.zzz-archive-back-end.workers.dev";
 const CORS_PROXY_URL = `${WORKER_URL}/?url=`;
 
 let defaultApiKey = null;
