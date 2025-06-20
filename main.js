@@ -185,18 +185,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function handleSaveResult() {
     if (currentAnalysisResult) {
+      console.log("開始儲存結果...");
       const success = store.addSavedResult({
         ...currentAnalysisResult,
         timestamp: new Date().toISOString(),
       });
       
+      console.log("儲存結果:", success);
+      
       if (success) {
         ui.markAsSaved();
         ui.showToast("結果已儲存。");
-        if (isSavedVisible) renderSaved();
+        if (isSavedVisible) {
+          console.log("重新渲染已儲存結果...");
+          renderSaved();
+        }
       } else {
         ui.showToast("儲存失敗，請稍後再試。");
       }
+    } else {
+      console.error("沒有可儲存的結果");
+      ui.showToast("沒有可儲存的結果。");
     }
   }
 
@@ -258,9 +267,13 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       onDelete: (index) => {
         if (confirm("您確定要刪除這個結果嗎？")) {
+          console.log("開始刪除結果，索引:", index);
           const success = store.deleteSavedResult(index);
+          console.log("刪除結果:", success);
+          
           if (success) {
             ui.showToast("結果已刪除。");
+            console.log("重新渲染已儲存結果...");
             renderSaved();
           } else {
             ui.showToast("刪除失敗，請稍後再試。");

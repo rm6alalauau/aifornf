@@ -209,6 +209,8 @@ export function toggleSettingsPanel(currentKey) {
   }
 }
 export function showToast(message) {
+  console.log("顯示toast:", message);
+  
   if (!elements.toastContainer) {
     console.error("Toast container not found!");
     return;
@@ -231,6 +233,11 @@ export function showToast(message) {
     document.body.appendChild(elements.toastContainer);
   }
   
+  // 確保toast容器可見
+  elements.toastContainer.style.display = "flex";
+  elements.toastContainer.style.visibility = "visible";
+  elements.toastContainer.style.opacity = "1";
+  
   elements.toastContainer.appendChild(toast);
   
   // 強制重繪以確保動畫正常執行
@@ -239,14 +246,18 @@ export function showToast(message) {
   const FADE_OUT_DELAY = 3000; // 增加顯示時間
   const ANIMATION_DURATION = 350;
   
+  console.log("Toast已添加到DOM，將在", FADE_OUT_DELAY, "ms後淡出");
+  
   setTimeout(() => {
     if (toast && toast.parentNode) {
+      console.log("開始淡出toast");
       toast.classList.add("fade-out");
     }
   }, FADE_OUT_DELAY);
   
   setTimeout(() => {
     if (toast && toast.parentNode) {
+      console.log("移除toast");
       toast.remove();
     }
   }, FADE_OUT_DELAY + ANIMATION_DURATION);

@@ -601,6 +601,9 @@ button:disabled {
     /* 確保在手機上也能正常顯示 */
     max-height: 100vh;
     overflow: hidden;
+    /* 確保容器可見 */
+    visibility: visible;
+    opacity: 1;
 }
 
 .toast {
@@ -623,6 +626,9 @@ button:disabled {
     word-wrap: break-word;
     white-space: normal;
     line-height: 1.4;
+    /* 確保toast可見 */
+    visibility: visible;
+    display: block;
 }
 
 @keyframes toast-in {

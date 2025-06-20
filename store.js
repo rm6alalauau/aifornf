@@ -28,16 +28,20 @@ function saveCacheToLocalStorage() {
       delete analysisCache[keys[0]];
     }
     localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(analysisCache));
+    return true;
   } catch (error) {
     console.error("儲存快取時出錯:", error);
+    return false;
   }
 }
 
 function saveResultsToLocalStorage() {
   try {
     localStorage.setItem(RESULTS_STORAGE_KEY, JSON.stringify(savedResults));
+    return true;
   } catch (error) {
     console.error("儲存結果時出錯:", error);
+    return false;
   }
 }
 
@@ -47,11 +51,32 @@ export function getSavedResults() {
 
 export function addSavedResult(resultData) {
   try {
-    savedResults.unshift(resultData);
-    if (savedResults.length > 50) { 
-      savedResults.pop(); 
+    // 檢查是否已經存在相同的結果
+    const existingIndex = savedResults.findIndex(result => 
+      result.image === resultData.image && 
+      result.verdict === resultData.verdict &&
+      result.rating === resultData.rating
+    );
+    
+    if (existingIndex !== -1) {
+      // 如果已存在，更新時間戳
+      savedResults[existingIndex].timestamp = resultData.timestamp;
+    } else {
+      // 如果不存在，新增到開頭
+      savedResults.unshift(resultData);
     }
-    saveResultsToLocalStorage();
+    
+    // 限制數量
+    if (savedResults.length > 50) { 
+      savedResults = savedResults.slice(0, 50);
+    }
+    
+    const saveSuccess = saveResultsToLocalStorage();
+    if (!saveSuccess) {
+      console.error("儲存到localStorage失敗");
+      return false;
+    }
+    
     return true;
   } catch (error) {
     console.error("新增儲存結果時出錯:", error);
@@ -63,9 +88,14 @@ export function deleteSavedResult(index) {
   try {
     if (index >= 0 && index < savedResults.length) {
       savedResults.splice(index, 1);
-      saveResultsToLocalStorage();
+      const saveSuccess = saveResultsToLocalStorage();
+      if (!saveSuccess) {
+        console.error("刪除後儲存到localStorage失敗");
+        return false;
+      }
       return true;
     }
+    console.error("刪除索引超出範圍:", index, "總數:", savedResults.length);
     return false;
   } catch (error) {
     console.error("刪除儲存結果時出錯:", error);
@@ -80,7 +110,11 @@ export function getCache(key) {
 export function setCache(key, value) {
   try {
     analysisCache[key] = value;
-    saveCacheToLocalStorage();
+    const saveSuccess = saveCacheToLocalStorage();
+    if (!saveSuccess) {
+      console.error("快取儲存到localStorage失敗");
+      return false;
+    }
     return true;
   } catch (error) {
     console.error("設定快取時出錯:", error);
