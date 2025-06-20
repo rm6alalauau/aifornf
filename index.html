@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 圖片分析師</title>
+    <!-- Google Fonts & Material Symbols -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <!-- HTML2Canvas Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="main-container">
+        <header>
+            <h1>AI 圖片分析師</h1>
+            <p class="subtitle">上傳或貼上圖片，讓 AI 為您提供多角度分析</p>
+            <div class="header-actions">
+                <button class="button-icon" id="theme-toggle" aria-label="切換主題">
+                    <span class="material-symbols-outlined">light_mode</span>
+                </button>
+                <button class="button-icon" id="settings-toggle" aria-label="API 設定">
+                    <span class="material-symbols-outlined">key</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="card">
+            <h3>選擇分析模式</h3>
+            <div class="segmented-button-container" id="ai-type-selector">
+                <input type="radio" id="ai-artCritique" name="ai-type" value="artCritique" checked>
+                <label for="ai-artCritique">藝術評論</label>
+                <input type="radio" id="ai-humorousRoast" name="ai-type" value="humorousRoast">
+                <label for="ai-humorousRoast">幽默吐槽</label>
+                <input type="radio" id="ai-poetic" name="ai-type" value="poetic">
+                <label for="ai-poetic">詩意描述</label>
+            </div>
+        </div>
+
+        <div class="card" id="input-card">
+            <h3>提供圖片</h3>
+            <div class="input-field">
+                <input type="url" id="image-url-input" placeholder=" ">
+                <label for="image-url-input">或者，在此貼上圖片網址</label>
+            </div>
+            <button class="button-outlined" id="submit-url-btn">使用網址</button>
+            <div class="divider">或</div>
+            <div class="upload-area" id="upload-area">
+                <span class="material-symbols-outlined">upload_file</span>
+                <p>拖曳圖片到此處，或<span>點擊上傳</span></p>
+                <input type="file" id="file-input" accept="image/*" hidden>
+            </div>
+        </div>
+
+        <div class="card result-card hidden" id="result-container">
+            <div class="image-preview-container">
+                <img id="result-image" src="" alt="分析的圖片">
+            </div>
+            <div class="loading-container hidden" id="loading">
+                <div class="spinner"></div>
+                <p>AI 正在分析中，請稍候...</p>
+            </div>
+            <div class="result-content hidden" id="result-content">
+                <div class="result-header">
+                    <h2 id="verdict"></h2>
+                    <div class="chip" id="rating"></div>
+                </div>
+                <p id="explanation"></p>
+                <div class="card-actions" id="result-actions">
+                    <button class="button-text" id="save-result-btn"><span
+                            class="material-symbols-outlined">save</span>儲存</button>
+                    <button class="button-text" id="share-result-btn"><span
+                            class="material-symbols-outlined">share</span>分享</button>
+                    <button class="button-filled" id="try-again-btn"><span
+                            class="material-symbols-outlined">refresh</span>再試一次</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <button class="button-filled" id="view-saved-btn" style="width: 100%;"><span
+                    class="material-symbols-outlined">folder_open</span>查看已儲存的結果</button>
+        </div>
+        <div id="saved-results-container"></div>
+    </div>
+
+    <!-- Popups and Hidden Canvases -->
+    <div class="popup-overlay" id="popup-overlay">
+        <div class="popup-card">
+            <button class="button-icon close-popup">×</button>
+            <img id="popup-img" src="" alt="儲存的圖片">
+            <div class="result-header">
+                <h3 id="popup-verdict"></h3>
+                <div class="chip" id="popup-rating"></div>
+                <button class="button-icon" id="popup-share-btn" aria-label="分享此結果"><span
+                        class="material-symbols-outlined">share</span></button>
+            </div>
+            <p id="popup-explanation"></p>
+        </div>
+    </div>
+
+    <div class="popup-overlay" id="settings-overlay">
+        <div class="popup-card">
+            <button class="button-icon close-popup">×</button>
+            <h3>API 設定</h3>
+            <p>請在此輸入您自己的 Google Gemini API Key。金鑰只會儲存在您的瀏覽器中，不會上傳到任何伺服器。</p>
+            <div class="input-field">
+                <input type="password" id="user-api-key-input" placeholder=" ">
+                <label for="user-api-key-input">您的 Gemini API Key</label>
+            </div>
+            <div class="card-actions">
+                <button class="button-text" id="clear-api-key-btn">清除金鑰</button>
+                <button class="button-filled" id="save-api-key-btn">儲存金鑰</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="share-canvas-container">
+        <div class="share-card">
+            <img id="share-image" src="" alt="">
+            <div class="share-content">
+                <div class="share-header">
+                    <h3 id="share-verdict"></h3>
+                    <div class="chip" id="share-rating"></div>
+                </div>
+                <p id="share-explanation"></p>
+            </div>
+            <div class="share-footer">
+                <p>由 AI 圖片分析師生成</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <!-- Main JavaScript file as a module -->
+    <script type="module" src="main.js"></script>
+</body>
+
+</html>
