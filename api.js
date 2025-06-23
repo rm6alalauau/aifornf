@@ -1,58 +1,40 @@
-import { systemPrompts } from "./config.js";
-
-const API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
-const MODEL = "gemini-1.5-flash-latest";
+// **IMPORTANT**: Set your Cloudflare Worker's ROOT URL here
+const WORKER_URL = "https://ai.zzz-archive-back-end.workers.dev";
 
 export async function analyzeImage(imageDataUrl, aiType, apiKey) {
   if (!apiKey) {
     throw new Error("API 金鑰為空，無法進行分析。");
   }
 
-  const systemPrompt = systemPrompts[aiType];
-  if (!systemPrompt) {
-    throw new Error(`無效的分析模式: ${aiType}`);
+  if (!imageDataUrl) {
+    throw new Error("圖片數據為空，無法進行分析。");
   }
 
-  const [header, base64Data] = imageDataUrl.split(",");
-  const mimeType = header.match(/:(.*?);/)[1];
-
-  const requestBody = {
-    contents: [
-      {
-        parts: [
-          { text: systemPrompt },
-          { inline_data: { mime_type: mimeType, data: base64Data } },
-        ],
-      },
-    ],
-    generationConfig: { response_mime_type: "application/json" },
-  };
-
-  const url = `${API_BASE_URL}${MODEL}:generateContent?key=${apiKey}`;
+  const url = `${WORKER_URL}/api/analyze-image`;
 
   try {
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({
+        imageDataUrl,
+        aiType,
+        apiKey,
+      }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("Gemini API Error:", errorData);
+      console.error("Worker API Error:", errorData);
       throw new Error(
-        errorData.error.message || `請求失敗，狀態碼: ${response.status}`
+        errorData.error || `請求失敗，狀態碼: ${response.status}`
       );
     }
 
     const data = await response.json();
-    if (!data.candidates || !data.candidates[0].content.parts[0].text) {
-      throw new Error("從 API 收到的回應格式無效。");
-    }
-
-    return JSON.parse(data.candidates[0].content.parts[0].text);
+    return data;
   } catch (error) {
-    console.error("呼叫 Gemini API 時出錯:", error);
+    console.error("呼叫 Worker API 時出錯:", error);
     throw error;
   }
 }
