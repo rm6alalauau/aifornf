@@ -1,3 +1,4 @@
+// Cloudflare Worker root URL. Keep this pointed at the Worker, not at Gemini directly.
 const WORKER_URL = "https://ai.zzz-archive-back-end.workers.dev";
 
 export async function analyzeImage(imageDataUrl, aiType) {
@@ -14,9 +15,16 @@ export async function analyzeImage(imageDataUrl, aiType) {
     }),
   });
 
-  const data = await response.json();
+  let data = null;
+
+  try {
+    data = await response.json();
+  } catch (_) {
+    data = { error: await response.text() };
+  }
 
   if (!response.ok) {
+    console.error("Worker API Error:", data);
     throw new Error(data.error || `分析失敗，狀態碼: ${response.status}`);
   }
 
