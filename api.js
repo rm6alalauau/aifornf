@@ -1,40 +1,24 @@
-// **IMPORTANT**: Set your Cloudflare Worker's ROOT URL here
 const WORKER_URL = "https://ai.zzz-archive-back-end.workers.dev";
 
-export async function analyzeImage(imageDataUrl, aiType, apiKey) {
-  if (!apiKey) {
-    throw new Error("API 金鑰為空，無法進行分析。");
-  }
-
+export async function analyzeImage(imageDataUrl, aiType) {
   if (!imageDataUrl) {
-    throw new Error("圖片數據為空，無法進行分析。");
+    throw new Error("缺少圖片資料，無法進行分析。");
   }
 
-  const url = `${WORKER_URL}/api/analyze-image`;
+  const response = await fetch(`${WORKER_URL}/api/analyze-image`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      imageDataUrl,
+      aiType,
+    }),
+  });
 
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        imageDataUrl,
-        aiType,
-        apiKey,
-      }),
-    });
+  const data = await response.json();
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Worker API Error:", errorData);
-      throw new Error(
-        errorData.error || `請求失敗，狀態碼: ${response.status}`
-      );
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("呼叫 Worker API 時出錯:", error);
-    throw error;
+  if (!response.ok) {
+    throw new Error(data.error || `分析失敗，狀態碼: ${response.status}`);
   }
+
+  return data;
 }
