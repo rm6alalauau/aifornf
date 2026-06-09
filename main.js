@@ -123,66 +123,48 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function startAnalysis() {
-    if (!selectedImageDataUrl) return;
+  if (!selectedImageDataUrl) return;
 
-    let apiKeyToUse = store.getUserApiKey();
-    if (!apiKeyToUse) {
-      if (!defaultApiKey) {
-        ui.showToast("正在準備預設服務，請稍候再試...");
-        await fetchDefaultApiKey();
-        if (!defaultApiKey) {
-          ui.displayError(
-            "無法獲取預設服務金鑰，請在設定中提供您自己的 API Key。"
-          );
-          ui.toggleSettingsPanel();
-          return;
-        }
-      }
-      apiKeyToUse = defaultApiKey;
+  ui.showResultView(selectedImageDataUrl);
+  ui.showLoading();
+
+  try {
+    const aiType = document.querySelector(
+      'input[name="ai-type"]:checked'
+    ).value;
+
+    const imageHash = await generateImageHash(selectedImageDataUrl);
+    const cacheKey = `${imageHash}-${aiType}`;
+    const cachedResult = store.getCache(cacheKey);
+
+    if (cachedResult) {
+      ui.showToast("已使用快取結果。");
+      setTimeout(() => {
+        currentAnalysisResult = {
+          ...cachedResult,
+          image: selectedImageDataUrl,
+          aiType,
+        };
+        ui.displayResult(currentAnalysisResult);
+      }, 500);
+      return;
     }
 
-    ui.showResultView(selectedImageDataUrl);
-    ui.showLoading();
+    const response = await analyzeImage(selectedImageDataUrl, aiType);
 
-    try {
-      const aiType = document.querySelector(
-        'input[name="ai-type"]:checked'
-      ).value;
-      const imageHash = await generateImageHash(selectedImageDataUrl);
-      const cacheKey = `${imageHash}-${aiType}`;
-      const cachedResult = store.getCache(cacheKey);
+    currentAnalysisResult = {
+      ...response,
+      image: selectedImageDataUrl,
+      aiType,
+    };
 
-      if (cachedResult) {
-        ui.showToast("從快取中讀取結果！");
-        setTimeout(() => {
-          currentAnalysisResult = {
-            ...cachedResult,
-            image: selectedImageDataUrl,
-            aiType,
-          };
-          ui.displayResult(currentAnalysisResult);
-        }, 500);
-        return;
-      }
-
-      const response = await analyzeImage(
-        selectedImageDataUrl,
-        aiType,
-        apiKeyToUse
-      );
-      currentAnalysisResult = {
-        ...response,
-        image: selectedImageDataUrl,
-        aiType,
-      };
-      ui.displayResult(currentAnalysisResult);
-      store.setCache(cacheKey, response);
-    } catch (error) {
-      console.error("分析時出錯:", error);
-      ui.displayError(error.message || "發生未知錯誤。");
-    }
+    ui.displayResult(currentAnalysisResult);
+    store.setCache(cacheKey, response);
+  } catch (error) {
+    console.error("分析時發生錯誤:", error);
+    ui.displayError(error.message || "AI 分析失敗。");
   }
-
+}
   function handleSaveResult() {
     if (currentAnalysisResult) {
       console.log("開始儲存結果...");
